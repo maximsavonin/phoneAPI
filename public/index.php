@@ -13,20 +13,76 @@ $segments = explode('/', $path);
 switch ($segments[0]) {
     case 'login':
         (new Auth())->login();
-        break;
+        exit;
     case 'register':
         (new Auth())->register();
-        break;
-    case 'listUsers':
-        if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-            (new listUsers())->getUsers();
-        } elseif ($_SERVER['REQUEST_METHOD'] == 'POST') {// должен быть patch
-            (new listUsers())->giveAccess();
-        } else {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        exit;
+}
+
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$token = null;
+
+if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+    $token = $matches[1];
+}
+
+$user_id = (new Auth())->check_token($token);
+if ($user_id === -1) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+switch ($segments[0]) {
+    case 'users':
+        switch ($segments[1]) {
+            case 'list':
+                (new ListUsers())->getUsers($user_id);
+                exit;
+            case 'access':
+                (new ListUsers())->giveAccess($user_id);
+                exit;
+            default:
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Invalid endpoint']);
         }
-        break;
+        exit;
+
+    case 'getBooks':
+        switch ($segments[1]) {
+            case 'user':
+                (new Book())->getBooksUser($user_id);
+                exit;
+            case 'otherUser':
+                (new Book())->getBooksOtherUser($user_id);
+                exit;
+            default:
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Invalid endpoint']);
+        }
+        exit;
+
+    case 'book':
+        switch ($segments[1]) {
+            case 'create':
+                (new Book())->createBook($user_id);
+                exit;
+            case 'get':
+                (new Book())->getBook();
+                exit;
+            case 'update':
+                (new Book())->updateBook();
+                exit;
+            case 'delete':
+                (new Book())->deleteBook();
+                exit;
+
+            default:
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Invalid endpoint']);
+        }
+        exit;
+
     default:
         http_response_code(404);
         echo json_encode(['success' => false, 'error' => 'Invalid endpoint']);

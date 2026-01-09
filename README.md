@@ -1,6 +1,9 @@
-# API для мобильного приложения - Библиотека книг
+# Mobile App API — Book Library
+
+In the examples below, data is shown in JSON format for the convenience of the author and for easier reading by users. The application itself accepts data in application/x-www-form-urlencoded format and responds in JSON.
+
 ## Authorization
-To authorize, make a **POST** request to `/login` with `username` and `password` in JSON format.  
+To authorize, make a **POST** request to `/login` with `username` and `password`.  
 The response is a JSON object with the keys `success`, `message`, and if registration is successful, it also includes `token` and `expires_at` (the token and the time when it will expire).
 
 **Request:** /login
@@ -14,7 +17,7 @@ The response is a JSON object with the keys `success`, `message`, and if registr
 ```json
 {
   "success": true,
-  "message": "User logined",
+  "message": "User logged in",
   "token": "a1b2c3d4...",
   "expires_at": "2026-01-04 09:40:52"
 }
@@ -25,6 +28,13 @@ The response is a JSON object with the keys `success`, `message`, and if registr
 | 400  | Username and password required | Username or password not provided |
 | 200  | User logged in                 | Successful login                  |
 | 400  | Wrong username or password     | Username or password is incorrect |
+For all subsequent requests except `/login` and `/register`, you must pass the token in the Authorization header. If the token is not provided or the token has expired, a 401 error response will be returned.
+```json
+{
+  "success": false,
+  "message": "Unauthorized"
+}
+```
 ## Registration
 To register, make a **POST** request to `/register` with `username`, `password`, and `password_confirm`.  
 The response follows the same format as the `/login` request.
@@ -48,40 +58,46 @@ The response follows the same format as the `/login` request.
 ```
 | code | message                        | Explanation                              |
 |------|--------------------------------|------------------------------------------|
-| 405  | Method not allowed             | Request method is not POST               |
+| 405  | Method not allowed             | Request method is not GET                |
 | 400  | Username and password required | Username or password not provided        |
 | 400  | Passwords do not match         | Password does not match the confirmation |
-| 200  | Username already exists        | A user with this username already exists |
-| 409  | User registered                | Successful registration                  |
+| 409  | Username already exists        | A user with this username already exists |
+| 200  | User registered                | Successful registration                  |
 
-## User list — grant access
-To retrieve the list of users, you need to make a **GET** request to `/listUsers`  
-The response is JSON with the keys `success` and `list`, where `list` contains `id` and `username`.
+## User list
+To retrieve the list of users, you need to make a **GET** request to `/users/list`  
+The response is JSON with the keys `success`, `message` and `users`, where `users` contains `id` and `username`.
 
-To grant a user access, you need to make a **POST** request to `/listUsers` with `owner_id` and `user_id` passed  
-The response is JSON with the keys `success` and `message`.
-
-**Response:** /listUsers
+**Response:** /users/list
 ```json
 {
   "success": true,
   "message": "",
-  "list": [
+  "users": [
     {
       "id": 1,
-      "username": 'maxim'
+      "username": "maxim"
     },
     {
       "id": 2,
-      "username": 'login'
+      "username": "login"
     }
   ]
 }
 ```
-**Request:** /listUsers
+
+| code | message                 | Explanation                     |
+|------|-------------------------|---------------------------------|
+| 405  | Method not allowed      | Request method is not POST      |
+| 200  |                         | User list successfully returned |
+
+## Give access
+To grant a user access, you need to make a **POST** request to `/users/access` with `user_id`.  
+The response is JSON with the keys `success` and `message`.
+
+**Request:** /users/access
 ```json
 {
-  "owner_id": "1",
   "user_id": "2"
 }
 ```
@@ -92,112 +108,172 @@ The response is JSON with the keys `success` and `message`.
   "message": "access has been granted"
 }
 ```
-| code | message                 | Explanation                            |
-|------|-------------------------|----------------------------------------|
-| 405  | Method not allowed      | An unsupported request method was used |
-| 404  | User does not exist     | The user does not exist                |
-| 409  | access already exists   | Access has already been granted        |
-| 200  |                         | User list successfully returned        |
-| 200  | access has been granted | Access has been granted                |
+| code | message                 | Explanation                     |
+|------|-------------------------|---------------------------------|
+| 405  | Method not allowed      | Request method is not POST      |
+| 404  | User does not exist     | The user does not exist         |
+| 409  | access already exists   | Access has already been granted |
+| 200  | access has been granted | Access has been granted         |
 
-## Авторизация
-Для авторизации требуется сделать **POST** запрос `/login` с передачей `username` и `password` в JSON формате.  
-Ответ JSON с ключами `success`, `message` и если регистрация успешна то передаётся `token` и `expires_at` (токен и вряме когда токен будет не действителен)
+## Get user's books list
+To get a list of a user’s books, make a **GET** request to `/getBooks/user`.  
+The response is JSON with keys `success`, `message` and `books` containing `id` and `title`.
 
-**Запрос:** /login
-```json
-{
-  "username": "login",
-  "password": "password"
-}
-```
-**Ответ:**
-```json
-{
-  "success": true,
-  "message": "User logined",
-  "token": "a1b2c3d4...",
-  "expires_at": "2026-01-04 09:40:52"
-}
-```
-### Варианты сообщений:
-| code | message                        | Пояснение                    |
-|------|--------------------------------|------------------------------|
-| 405  | Method not allowed             | Выполнен не POST запрос      |
-| 400  | Username and password required | Не передан логин или пароль  |
-| 200  | User logined                   | Успешная авторизация         |
-| 400  | wrong username or password     | Логи или пароль не правльный |
-## Регистрация
-Для регистрации требуется сделать **POST** запрос `/register` с передачей `username`, `password` и `password_confirm`  
-Ответ соответствует запросу `/login`
-
-**Запрос:** /register
-```json
-{
-  "username": "login",
-  "password": "password",
-  "password_confirm": "password"
-}
-```
-**Ответ:**
-```json
-{
-  "success": true,
-  "message": "User registered",
-  "token": "a1b2c3d4...",
-  "expires_at": "2026-01-04 09:40:52"
-}
-```
-| code | message                        | Пояснение                                 |
-|------|--------------------------------|-------------------------------------------|
-| 405  | Method not allowed             | Выполнен не POST запрос                   |
-| 400  | Username and password required | Не передан логин или пароль               |
-| 400  | Passwords do not match         | Пароль не совпадает с подтвеждение пароля |
-| 200  | Username already exists        | Пользователь с данным логином существует  |
-| 409  | User registered                | Успешная регистрация                      |
-
-## Список пользователей, дать доступ
-Для получения списка пользователей требуется сделать **GET** запрос `/listUsers`  
-Ответ JSON с ключами `success` и `list` в котором id и username.
-
-Для выдачи пользователю доступа требуется сделать **POST** запрос `/listUsers` с передаче `owner_id` и `user_id`  
-Ответ JSON с ключами `success` и `message`.
-
-**Ответ:** /listUsers
+**Response:** /getBooks/user
 ```json
 {
   "success": true,
   "message": "",
-  "list": [
+  "books": [
     {
       "id": 1,
-      "username": 'maxim'
+      "title": "Война и мир"
     },
     {
-      "id": 2,
-      "username": 'login'
+      "id": 15,
+      "title": "Преступление и наказание"
     }
   ]
 }
 ```
-**Запрос:** /listUsers
+| code | message            | Description               |
+|------|--------------------|---------------------------|
+| 405  | Method not allowed | Request method is not GET |
+| 200  |                    | List of books sent        |
+
+## Get another user's book list
+To get another user’s books, make a **GET** request to `/getBooks/otherUser` with `owner_id`.  
+The response is JSON with keys `success`, `message` and `books` containing `id` and `title`.
+
+**Request:** /users/access
 ```json
 {
-  "owner_id": "1",
-  "user_id": "2"
+  "owner_id": "1"
 }
 ```
-**Ответ:**
+**Response:**
 ```json
 {
   "success": true,
-  "message": "access has been granted"
+  "message": "",
+  "books": [
+    {
+      "id": 1,
+      "title": "Война и мир"
+    },
+    {
+      "id": 15,
+      "title": "Преступление и наказание"
+    }
+  ]
 }
 ```
-| code | message                 | Пояснение                         |
-|------|-------------------------|-----------------------------------|
-| 405  | Method not allowed      | Выполнен не обробатываемый запрос |
-| 404  | User does not exist     | Пользователь не существует        |
-| 409  | access already exists   | доступ уже выдан                  |
-| 200  |                         | Передача списка пользователей     |
-| 200  | access has been granted | Доступ выдан                      |
+| code | message            | Description               |
+|------|--------------------|---------------------------|
+| 405  | Method not allowed | Request method is not GET |
+| 403  | access denied      | Access denied             |
+| 200  |                    | Book list returned        |
+
+## Book actions
+For different book actions, use the endpoint `/book/{action}`
+
+| Method | action | Description           | Parameters                         | Response                            |
+|--------|--------|-----------------------|------------------------------------|-------------------------------------|
+| POST   | create | Create a new book     | book_title, text/file(.txt, <30Mb) | success, message                    |
+| GET    | get    | Get an existing book  | book_id                            | success, message, book(title, text) |
+| POST   | update | Edit an existing book | book_id, book_title, text          | success, message                    |
+| POST   | delete | Delete a book         | book_id                            | success, message                    |
+
+**Request:** /book/create
+```json
+{
+  "book_title": "Война и мир",
+  "text": "abcdef..."
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "book created"
+}
+```
+| code | message                       | Description                    |
+|------|-------------------------------|--------------------------------|
+| 405  | Method not allowed            | Request method is not POST     |
+| 400  | Book title is required        | Book title not provided        |
+| 400  | text or file not transferred  | Book text or file not provided |
+| 400  | error uploading file          | Error uploading file           |
+| 413  | file is too large (max 30 MB) | File exceeds 30 MB             |
+| 415  | file extension not allowed    | File must be .txt              |
+| 415  | file must be in UTF-8         | File must be in UTF-8 encoding |
+| 500  | error reading file            | Error reading file             |
+| 200  | book created                  | Book created                   |
+
+**Request:** /book/get
+```json
+{
+  "book_id": 3
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "book created",
+  "book": {
+    "title": "Война и мир",
+    "text": "abcdef..."
+  }
+}
+```
+| code | message             | Description               |
+|------|---------------------|---------------------------|
+| 405  | Method not allowed  | Request method is not GET |
+| 400  | book id is required | Book id not provided      |
+| 404  | book not found      | Book not found            |
+| 200  |                     | Book returned             |
+
+**Request:** /book/update
+```json
+{
+  "book_id": 3,
+  "book_title": "Война и мир",
+  "text": "abcdef..."
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "book updated"
+}
+```
+| code | message                | Description                |
+|------|------------------------|----------------------------|
+| 405  | Method not allowed     | Request method is not POST |
+| 400  | book id is required    | Book id not provided       |
+| 400  | Book title is required | Book title not provided    |
+| 400  | text not transferred   | Book text not provided     |
+| 404  | book not found         | Book not found             |
+| 200  | book updated           | Book updated               |
+
+**Request:** /book/delete
+```json
+{
+  "book_id": 3
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "book deleted"
+}
+```
+| code | message                      | Description                |
+|------|------------------------------|----------------------------|
+| 405  | Method not allowed           | Request method is not POST |
+| 400  | book id is required          | Book id not provided       |
+| 404  | book not found               | Book not found             |
+| 200  | book deleted                 | Book deleted               |

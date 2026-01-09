@@ -1,5 +1,5 @@
 <?php
-require_once '../config/database.php'; // $pdo подключение к БД
+require_once __DIR__ . '/../config/database.php';
 
 class Auth {
 
@@ -13,6 +13,35 @@ class Auth {
         $stmt->execute([$user_id, $token, $expires]);
 
         return ['token' => $token, 'expires_at' => $expires];
+    }
+
+    public function check_token($token)
+    {
+        if (!$token) return -1;
+        global $pdo;
+
+        $stmt = $pdo->prepare("SELECT id, user_id, created_at, expires_at FROM tokens WHERE token = ?");
+        $stmt->execute([$token]);
+        $row = $stmt->fetch();
+
+        if (!$row) return -1;
+
+        $now = date('Y-m-d H:i:s');
+        $expired = $row['expires_at'] < $now;
+        $old = $row['created_at'] < date('Y-m-d H:i:s', strtotime('-30 days'));
+
+        if ($expired || $old) {
+            $stmt = $pdo->prepare("DELETE FROM tokens WHERE id = ?");
+            $stmt->execute([$row['id']]);
+            return -1;
+        }
+
+        $expires = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+        $stmt = $pdo->prepare("UPDATE tokens SET expires_at = ? WHERE id = ?");
+        $stmt->execute([$expires, $row['id']]);
+
+        return $row['user_id'];
     }
 
     public function register() {
@@ -38,6 +67,7 @@ class Auth {
         if ($password !== $password_confirm) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Passwords do not match']);
+            return;
         }
 
         global $pdo;
@@ -91,7 +121,7 @@ class Auth {
 
         if ($user && password_verify($password, $user['password'])) {
             $token = $this->create_token($user['id']);
-            echo json_encode(['success' => true, 'message' => 'User logined', 'token' => $token['token'], 'expires_at' => $token['expires_at']]);
+            echo json_encode(['success' => true, 'message' => 'User logged in', 'token' => $token['token'], 'expires_at' => $token['expires_at']]);
         } else {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'wrong username or password']);
