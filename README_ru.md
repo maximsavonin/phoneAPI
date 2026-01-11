@@ -28,7 +28,7 @@
 | 405  | Method not allowed             | Выполнен не POST запрос      |
 | 400  | Username and password required | Не передан логин или пароль  |
 | 200  | User logged in                 | Успешная авторизация         |
-| 400  | wrong username or password     | Логи или пароль не правльный |
+| 400  | wrong username or password     | Логи или пароль не правльный |  
 Во всех последующих запросах кроме `/login` и `/register` требуется передавать токен в заголовке Authorization. Если токен не передать или токен просрочен будет передан ответ с кодом ошибки 401
 ```json
 {
