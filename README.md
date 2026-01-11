@@ -28,6 +28,7 @@ The response is a JSON object with the keys `success`, `message`, and if registr
 | 400  | Username and password required | Username or password not provided |
 | 200  | User logged in                 | Successful login                  |
 | 400  | Wrong username or password     | Username or password is incorrect |
+
 For all subsequent requests except `/login` and `/register`, you must pass the token in the Authorization header. If the token is not provided or the token has expired, a 401 error response will be returned.
 ```json
 {
